@@ -1,11 +1,8 @@
 import sys
-
-print(sys.executable)
-
 import streamlit as st
 from PyPDF2 import PdfReader
-from sentence_transformers import SentenceTransformer, util
-import ollama
+import google.generativeai as genai
+import numpy as np
 
 # ==========================
 # CONFIGURACIÓN DE LA PÁGINA
@@ -19,18 +16,17 @@ st.set_page_config(
 
 st.title("🤖 Chat Inteligente con PDF")
 st.markdown(
-    "Haz preguntas sobre tus documentos utilizando Inteligencia Artificial."
+    "Haz preguntas sobre tus documentos utilizando Inteligencia Artificial rápida y ligera."
 )
 
 # ==========================
-# CARGAR EL MODELO
+# CONFIGURAR API KEY DE GEMINI
 # ==========================
 
-@st.cache_resource
-def cargar_modelo():
-    return SentenceTransformer("all-MiniLM-L6-v2")
-
-modelo = cargar_modelo()
+if "GEMINI_API_KEY" in st.secrets:
+    genai.configure(api_key=st.secrets["GEMINI_API_KEY"])
+else:
+    st.warning("⚠️ Falta configurar la clave GEMINI_API_KEY en los Secrets de Streamlit. El chat con IA no funcionará sin ella.")
 
 # ==========================
 # MEMORIA DEL CHAT
@@ -56,16 +52,11 @@ if archivos:
     barra = st.progress(0)
 
     for i, archivo in enumerate(archivos):
-
         lector = PdfReader(archivo)
-
         for pagina in lector.pages:
-
             texto = pagina.extract_text()
-
             if texto:
                 texto_total += texto + "\n"
-
         barra.progress((i + 1) / len(archivos))
 
     st.success("✅ PDF cargado correctamente")
@@ -78,78 +69,79 @@ if archivos:
 
     st.write(f"📑 Fragmentos encontrados: {len(fragmentos)}")
 
-    pregunta = st.chat_input(
-        "Escribe tu pregunta..."
-    )
+    pregunta = st.chat_input("Escribe tu pregunta...")
+
 # ==========================
-# BÚSQUEDA SEMÁNTICA
+# BÚSQUEDA SEMÁNTICA CON GEMINI EMBEDDINGS (Ultra ligero)
 # ==========================
 
     if pregunta:
+        with st.spinner("🔎 Buscando información con Gemini Embeddings..."):
+            try:
+                # 1. Obtener embedding de la pregunta usando la API de Google
+                query_emb = genai.embed_content(
+                    model="models/text-embedding-004",
+                    contents=pregunta,
+                    task_type="retrieval_query"
+                )["embedding"]
 
-        with st.spinner("🔎 Buscando información..."):
+                # 2. Obtener embeddings de los fragmentos
+                if len(fragmentos) > 150:
+                    st.warning("⚠️ El documento es muy largo. Se analizarán los primeros 150 fragmentos para evitar límites de la API gratuita.")
+                    fragmentos_reducidos = fragmentos[:150]
+                else:
+                    fragmentos_reducidos = fragmentos
 
-            emb_pregunta = modelo.encode(
-                pregunta,
-                convert_to_tensor=True
-            )
+                doc_embs = genai.embed_content(
+                    model="models/text-embedding-004",
+                    contents=fragmentos_reducidos,
+                    task_type="retrieval_document"
+                )["embeddings"]
 
-            mejor_texto = ""
-            mejor_score = -1
+                # 3. Calcular similitud coseno de forma matemática directa en CPU
+                mejor_texto = ""
+                mejor_score = -1
 
-            for frag in fragmentos:
+                query_vec = np.array(query_emb)
+                
+                for frag, doc_emb in zip(fragmentos_reducidos, doc_embs):
+                    doc_vec = np.array(doc_emb)
+                    score = np.dot(query_vec, doc_vec) / (np.linalg.norm(query_vec) * np.linalg.norm(doc_vec))
+                    
+                    if score > mejor_score:
+                        mejor_score = score
+                        mejor_texto = frag
 
-                emb_frag = modelo.encode(
-                    frag,
-                    convert_to_tensor=True
-                )
+                st.info(f"📊 Confianza de la búsqueda: {mejor_score:.2f}")
 
-                score = util.cos_sim(
-                    emb_pregunta,
-                    emb_frag
-                ).item()
-
-                if score > mejor_score:
-                    mejor_score = score
-                    mejor_texto = frag
-
-        st.info(
-            f"📊 Confianza de la búsqueda: {mejor_score:.2f}"
-        )
+            except Exception as e:
+                st.error(f"Error en la búsqueda semántica: {str(e)}")
+                mejor_texto = fragmentos[0] if fragmentos else ""
+                mejor_score = 0.50
 
 # ==========================
-# RESPUESTA CON OLLAMA
+# RESPUESTA CON GEMINI
 # ==========================
 
-        with st.spinner("🤖 Pensando..."):
+        with st.spinner("🤖 Pensando con Gemini..."):
+            try:
+                model = genai.GenerativeModel("gemini-2.5-flash")
+                
+                contexto_y_pregunta = f"""
+Eres un asistente que responde únicamente usando la información proporcionada del documento.
 
-            respuesta = ollama.chat(
-                model="gemma3:1b",
-                messages=[
-                    {
-                        "role": "system",
-                        "content": (
-                            "Eres un asistente que responde "
-                            "únicamente usando la información "
-                            "proporcionada del documento."
-                        )
-                    },
-                    {
-                        "role": "user",
-                        "content": f"""
 Información del documento:
-
 {mejor_texto}
 
 Pregunta:
-
 {pregunta}
 """
-                    }
-                ]
-            )
+                response = model.generate_content(contexto_y_pregunta)
+                respuesta_ia = response.text
+                
+            except Exception as e:
+                respuesta_ia = f"Error al conectar con Gemini: {str(e)}"
 
-        respuesta_ia = respuesta["message"]["content"]
 # ==========================
 # GUARDAR EN EL HISTORIAL
 # ==========================
@@ -167,182 +159,93 @@ Pregunta:
 # ==========================
 
         st.subheader("🤖 Respuesta")
-
         st.write(respuesta_ia)
-
-        st.progress(
-            min(max(mejor_score, 0), 1)
-        )
-
-        st.caption(
-            f"Nivel de confianza: {mejor_score:.2f}"
-        )
+        st.progress(min(max(float(mejor_score), 0.0), 1.0))
+        st.caption(f"Nivel de confianza: {mejor_score:.2f}")
 
 # ==========================
 # HISTORIAL DEL CHAT
 # ==========================
 
 if st.session_state.historial:
-
     st.divider()
-
     st.subheader("💬 Historial")
 
-    for i, chat in enumerate(
-        reversed(st.session_state.historial),
-        start=1
-    ):
-
-        with st.expander(
-            f"Pregunta {i}"
-        ):
-
-            st.markdown(
-                f"**🙋 Pregunta:** {chat['pregunta']}"
-            )
-
-            st.markdown(
-                f"**🤖 Respuesta:** {chat['respuesta']}"
-            )
-
-            st.caption(
-                f"Confianza: {chat['confianza']:.2f}"
-            )
+    for i, chat in enumerate(reversed(st.session_state.historial), start=1):
+        with st.expander(f"Pregunta {i}"):
+            st.markdown(f"**🙋 Pregunta:** {chat['pregunta']}")
+            st.markdown(f"**🤖 Respuesta:** {chat['respuesta']}")
+            st.caption(f"Confianza: {chat['confianza']:.2f}")
 
 # ==========================
 # BOTÓN LIMPIAR CHAT
 # ==========================
 
 if st.button("🗑️ Limpiar conversación"):
-
     st.session_state.historial = []
-
     st.rerun()
+
 # ======================================
 # SIDEBAR
 # ======================================
 
 with st.sidebar:
-
     st.title("🤖 Chat Inteligente")
-
     st.markdown("---")
-
     st.write("### Modelo IA")
-    st.success("Gemma 3:1B")
-
+    st.success("Google Gemini (gemini-2.5-flash)")
     st.write("### Motor de búsqueda")
-    st.success("Sentence Transformers")
-
+    st.success("Gemini Embeddings (text-embedding-004)")
     st.write("### Librerías")
-
     st.markdown("""
 - ✅ Streamlit
-- ✅ Ollama
+- ✅ Gemini API
 - ✅ PyPDF2
-- ✅ Sentence Transformers
+- ✅ Numpy
 - ✅ Python
 """)
-
     st.markdown("---")
 
     if archivos:
-
         st.write("### Estadísticas")
-
-        st.metric(
-            "PDF cargados",
-            len(archivos)
-        )
-
-        st.metric(
-            "Fragmentos",
-            len(fragmentos)
-        )
-
-        st.metric(
-            "Preguntas",
-            len(st.session_state.historial)
-        )
+        st.metric("PDF cargados", len(archivos))
+        st.metric("Fragmentos", len(fragmentos))
+        st.metric("Preguntas", len(st.session_state.historial))
 
 # ======================================
 # RESUMEN DEL DOCUMENTO
 # ======================================
 
 if archivos:
-
     if st.button("📄 Generar resumen"):
-
-        with st.spinner("Generando resumen..."):
-
-            resumen = ollama.chat(
-
-                model="gemma3:1b",
-
-                messages=[
-
-                    {
-
-                        "role":"user",
-
-                        "content":f"""
-
-Resume el siguiente documento en máximo 10 líneas.
-
-Documento:
-
-{texto_total[:12000]}
-
-"""
-
-                    }
-
-                ]
-
-            )
-
-        st.subheader("📝 Resumen")
-
-        st.write(
-
-            resumen["message"]["content"]
-
-        )
+        with st.spinner("Generando resumen con Gemini..."):
+            try:
+                model = genai.GenerativeModel("gemini-2.5-flash")
+                prompt_resumen = f"Resume el siguiente documento en máximo 10 líneas:\n\n{texto_total[:12000]}"
+                resumen = model.generate_content(prompt_resumen)
+                
+                st.subheader("📝 Resumen")
+                st.write(resumen.text)
+            except Exception as e:
+                st.error(f"Error al generar el resumen: {str(e)}")
 
 # ======================================
 # DESCARGAR CHAT
 # ======================================
 
 if st.session_state.historial:
-
-    texto_chat=""
-
+    texto_chat = ""
     for chat in st.session_state.historial:
-
         texto_chat += f"Pregunta: {chat['pregunta']}\n"
-
         texto_chat += f"Respuesta: {chat['respuesta']}\n"
-
         texto_chat += "-"*50+"\n"
 
     st.download_button(
-
         "📥 Descargar conversación",
-
         texto_chat,
-
         file_name="chat_pdf.txt",
-
         mime="text/plain"
-
     )
 
-# ======================================
-# FOOTER
-# ======================================
-
 st.markdown("---")
-
-st.caption(
-    "Proyecto desarrollado con ❤️ usando Python, Streamlit, Ollama y Gemma 3."
-)
+st.caption("Proyecto desarrollado con ❤️ usando Python, Streamlit y Google Gemini.")

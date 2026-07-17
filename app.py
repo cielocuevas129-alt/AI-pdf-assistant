@@ -72,16 +72,17 @@ if archivos:
     pregunta = st.chat_input("Escribe tu pregunta...")
 
 # ==========================
-# BÚSQUEDA SEMÁNTICA CON GEMINI EMBEDDINGS
+# BÚSQUEDA SEMÁNTICA CON GEMINI EMBEDDINGS (Corregido)
 # ==========================
 
     if pregunta:
         with st.spinner("🔎 Buscando información con Gemini Embeddings..."):
             try:
                 # 1. Obtener embedding de la pregunta
+                # Usamos el modelo universal estable 'models/embedding-001' que soporta perfectamente v1beta
                 query_emb = genai.embed_content(
-                    model="models/text-embedding-004",
-                    content=pregunta,  # <-- CORREGIDO: 'content' en lugar de 'contents'
+                    model="models/embedding-001",
+                    content=pregunta,
                     task_type="retrieval_query"
                 )["embedding"]
 
@@ -93,8 +94,8 @@ if archivos:
                     fragmentos_reducidos = fragmentos
 
                 doc_embs = genai.embed_content(
-                    model="models/text-embedding-004",
-                    content=fragmentos_reducidos,  # <-- CORREGIDO: 'content' en lugar de 'contents'
+                    model="models/embedding-001",
+                    content=fragmentos_reducidos,
                     task_type="retrieval_document"
                 )["embeddings"]
 
@@ -120,12 +121,12 @@ if archivos:
                 mejor_score = 0.50
 
 # ==========================
-# RESPUESTA CON GEMINI
+# RESPUESTA CON GEMINI (Corregido)
 # ==========================
 
         with st.spinner("🤖 Pensando con Gemini..."):
             try:
-                # CORREGIDO: Usamos gemini-1.5-flash que es el modelo estable y gratuito
+                # En la API v1beta el nombre se invoca directamente como 'gemini-1.5-flash' sin el prefijo models/
                 model = genai.GenerativeModel("gemini-1.5-flash")
                 
                 contexto_y_pregunta = f"""
@@ -196,7 +197,7 @@ with st.sidebar:
     st.write("### Modelo IA")
     st.success("Google Gemini (gemini-1.5-flash)")
     st.write("### Motor de búsqueda")
-    st.success("Gemini Embeddings (text-embedding-004)")
+    st.success("Gemini Embeddings (embedding-001)")
     st.write("### Librerías")
     st.markdown("""
 - ✅ Streamlit

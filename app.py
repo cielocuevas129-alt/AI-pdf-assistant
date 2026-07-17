@@ -1,3 +1,7 @@
+import sys
+
+print(sys.executable)
+
 import streamlit as st
 from PyPDF2 import PdfReader
 from sentence_transformers import SentenceTransformer, util
@@ -77,7 +81,7 @@ if archivos:
     pregunta = st.chat_input(
         "Escribe tu pregunta..."
     )
-    # ==========================
+# ==========================
 # BÚSQUEDA SEMÁNTICA
 # ==========================
 

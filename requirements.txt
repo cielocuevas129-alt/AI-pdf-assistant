@@ -1,8 +1,4 @@
---extra-index-url https://download.pytorch.org/whl/cpu
 streamlit
 PyPDF2
-sentence-transformers
-ollama
-torch
-torchvision
-scikit-learn
+google-generativeai
+numpy

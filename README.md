@@ -1,38 +1,49 @@
-# 🤖 Cielo AI PDF Assistant
+# 🤖 Chat Inteligente con PDF
 
-Aplicación desarrollada en Python y Streamlit que permite cargar documentos PDF y realizar consultas utilizando Inteligencia Artificial.
+Aplicación desarrollada en Python que permite hacer preguntas sobre documentos PDF utilizando Inteligencia Artificial.
 
-## Características
+## 🚀 Características
 
-- 📄 Carga de archivos PDF
-- 🤖 Búsqueda semántica con IA
-- 💬 Historial de conversación
-- 📊 Estadísticas del documento
-- 🎯 Top 3 respuestas más relevantes
-- ⬇️ Descarga de respuestas
+- 📄 Carga uno o varios archivos PDF.
+- 🔍 Búsqueda semántica con Sentence Transformers.
+- 🤖 Respuestas generadas con Ollama + Gemma 3:1B.
+- 💬 Historial de conversación.
+- 📊 Nivel de confianza de la respuesta.
+- 🖥️ Interfaz desarrollada con Streamlit.
 
-## Tecnologías
+## 🛠️ Tecnologías
 
 - Python
 - Streamlit
 - PyPDF2
 - Sentence Transformers
-- Machine Learning
+- Ollama
+- Gemma 3:1B
 
-## Instalación
+## 📦 Instalación
+
+Clona el repositorio:
 
 ```bash
-pip install streamlit
-pip install pypdf2
-pip install sentence-transformers
+git clone https://github.com/TU-USUARIO/chat-con-pdf.git
 ```
 
-## Ejecutar
+Instala las dependencias:
+
+```bash
+pip install -r requirements.txt
+```
+
+Ejecuta la aplicación:
 
 ```bash
 streamlit run app.py
 ```
 
-## Autor
+## 📷 Capturas
+
+Aquí puedes agregar imágenes de la aplicación.
+
+## 👩‍💻 Autora
 
 Cielo Nichool Cuevas Perdomo

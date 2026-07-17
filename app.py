@@ -72,16 +72,16 @@ if archivos:
     pregunta = st.chat_input("Escribe tu pregunta...")
 
 # ==========================
-# BÚSQUEDA SEMÁNTICA CON GEMINI EMBEDDINGS (Ultra ligero)
+# BÚSQUEDA SEMÁNTICA CON GEMINI EMBEDDINGS
 # ==========================
 
     if pregunta:
         with st.spinner("🔎 Buscando información con Gemini Embeddings..."):
             try:
-                # 1. Obtener embedding de la pregunta usando la API de Google
+                # 1. Obtener embedding de la pregunta
                 query_emb = genai.embed_content(
                     model="models/text-embedding-004",
-                    contents=pregunta,
+                    content=pregunta,  # <-- CORREGIDO: 'content' en lugar de 'contents'
                     task_type="retrieval_query"
                 )["embedding"]
 
@@ -94,11 +94,11 @@ if archivos:
 
                 doc_embs = genai.embed_content(
                     model="models/text-embedding-004",
-                    contents=fragmentos_reducidos,
+                    content=fragmentos_reducidos,  # <-- CORREGIDO: 'content' en lugar de 'contents'
                     task_type="retrieval_document"
                 )["embeddings"]
 
-                # 3. Calcular similitud coseno de forma matemática directa en CPU
+                # 3. Calcular similitud coseno
                 mejor_texto = ""
                 mejor_score = -1
 
@@ -125,7 +125,8 @@ if archivos:
 
         with st.spinner("🤖 Pensando con Gemini..."):
             try:
-                model = genai.GenerativeModel("gemini-2.5-flash")
+                # CORREGIDO: Usamos gemini-1.5-flash que es el modelo estable y gratuito
+                model = genai.GenerativeModel("gemini-1.5-flash")
                 
                 contexto_y_pregunta = f"""
 Eres un asistente que responde únicamente usando la información proporcionada del documento.
@@ -193,7 +194,7 @@ with st.sidebar:
     st.title("🤖 Chat Inteligente")
     st.markdown("---")
     st.write("### Modelo IA")
-    st.success("Google Gemini (gemini-2.5-flash)")
+    st.success("Google Gemini (gemini-1.5-flash)")
     st.write("### Motor de búsqueda")
     st.success("Gemini Embeddings (text-embedding-004)")
     st.write("### Librerías")
@@ -220,7 +221,7 @@ if archivos:
     if st.button("📄 Generar resumen"):
         with st.spinner("Generando resumen con Gemini..."):
             try:
-                model = genai.GenerativeModel("gemini-2.5-flash")
+                model = genai.GenerativeModel("gemini-1.5-flash")
                 prompt_resumen = f"Resume el siguiente documento en máximo 10 líneas:\n\n{texto_total[:12000]}"
                 resumen = model.generate_content(prompt_resumen)
                 

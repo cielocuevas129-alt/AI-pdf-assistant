@@ -1,43 +1,22 @@
 # 🤖 Chat Inteligente con PDF
 
-Aplicación desarrollada en Python que permite hacer preguntas sobre documentos PDF utilizando Inteligencia Artificial.
+Aplicación desarrollada en Python y Streamlit que permite hacer preguntas sobre documentos PDF utilizando Google Gemini.
 
 ## 🚀 Características
 
 - 📄 Carga uno o varios archivos PDF.
-- 🔍 Búsqueda semántica con Sentence Transformers.
-- 🤖 Respuestas generadas con Ollama + Gemma 3:1B.
-- 💬 Historial de conversación.
-- 📊 Nivel de confianza de la respuesta.
-- 🖥️ Interfaz desarrollada con Streamlit.
+- 🤖 Genera un resumen automático del documento.
+- 💬 Permite hacer preguntas sobre el contenido del PDF.
+- 🔍 Utiliza embeddings para encontrar la información más relevante.
+- 📥 Permite descargar la conversación.
 
-## 🛠️ Tecnologías
+## 🛠 Tecnologías
 
 - Python
 - Streamlit
+- Google Gemini API
 - PyPDF2
-- Sentence Transformers
-- Ollama
-- Gemma 3:1B
-
-## 📦 Instalación
-
-Clona el repositorio:
-
-```bash
-git clone https://github.com/TU-USUARIO/chat-con-pdf.git
-```
-
-Instala las dependencias:
-
-```bash
-pip install -r requirements.txt
-```
-
-Ejecuta la aplicación:
-
-```bash
-streamlit run app.py
+- NumPy
 ```
 ## Capturas
 

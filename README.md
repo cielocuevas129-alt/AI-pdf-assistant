@@ -40,9 +40,6 @@ Ejecuta la aplicación:
 streamlit run app.py
 ```
 
-## 📷 Capturas
-
-Aquí puedes agregar imágenes de la aplicación.
 
 ## 👩‍💻 Autora
 

@@ -81,7 +81,7 @@ if archivos:
             try:
                 # 1. Obtener embedding de la pregunta usando el cliente moderno
                 response_query = client.models.embed_content(
-                    model="text-embedding-001",
+                    model="gemini-embedding-001",
                     contents=pregunta
                 )
                 query_emb = response_query.embeddings[0].values
@@ -94,7 +94,7 @@ if archivos:
                     fragmentos_reducidos = fragmentos
 
                 response_docs = client.models.embed_content(
-                    model="text-embedding-004",
+                    model="gemini-embedding-001",
                     contents=fragmentos_reducidos
                 )
                 doc_embs = [emb.values for emb in response_docs.embeddings]
@@ -225,7 +225,7 @@ if archivos:
             try:
                 prompt_resumen = f"Resume el siguiente documento en máximo 10 líneas:\n\n{texto_total[:12000]}"
                 resumen = client.models.generate_content(
-                    model="gemini-flash-latest",
+                    model="gemini-3.6-flash",
                     contents=prompt_resumen
                 )
                 

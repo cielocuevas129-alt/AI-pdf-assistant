@@ -1,12 +1,8 @@
 import sys
-import os
 import streamlit as st
 from PyPDF2 import PdfReader
-import google.generativeai as genai
+from google import genai  # <-- Usamos la nueva librería oficial de Google
 import numpy as np
-
-# FORZAR EL USO DE LA API ESTABLE DE PRODUCCIÓN (v1)
-os.environ["GOOGLE_API_USE_CLIENT_OPTIONS"] = "1"
 
 # ==========================
 # CONFIGURACIÓN DE LA PÁGINA
@@ -28,7 +24,8 @@ st.markdown(
 # ==========================
 
 if "GEMINI_API_KEY" in st.secrets:
-    genai.configure(api_key=st.secrets["GEMINI_API_KEY"])
+    # Inicializamos el cliente moderno de Google GenAI
+    client = genai.Client(api_key=st.secrets["GEMINI_API_KEY"])
 else:
     st.warning("⚠️ Falta configurar la clave GEMINI_API_KEY en los Secrets de Streamlit. El chat con IA no funcionará sin ella.")
 
@@ -82,27 +79,27 @@ if archivos:
     if pregunta:
         with st.spinner("🔎 Buscando información con Gemini Embeddings..."):
             try:
-                # Usamos el modelo estable text-embedding-004 de producción
-                query_emb = genai.embed_content(
-                    model="models/text-embedding-004",
-                    content=pregunta,
-                    task_type="retrieval_query"
-                )["embedding"]
+                # 1. Obtener embedding de la pregunta usando el cliente moderno
+                response_query = client.models.embed_content(
+                    model="text-embedding-004",
+                    contents=pregunta
+                )
+                query_emb = response_query.embeddings[0].values
 
-                # Obtener embeddings de los fragmentos
-                if len(fragmentos) > 150:
-                    st.warning("⚠️ El documento es muy largo. Se analizarán los primeros 150 fragmentos para evitar límites de la API gratuita.")
-                    fragmentos_reducidos = fragmentos[:150]
+                # 2. Obtener embeddings de los fragmentos
+                if len(fragmentos) > 100:
+                    st.warning("⚠️ El documento es muy largo. Se analizarán los primeros 100 fragmentos para evitar límites de la API gratuita.")
+                    fragmentos_reducidos = fragmentos[:100]
                 else:
                     fragmentos_reducidos = fragmentos
 
-                doc_embs = genai.embed_content(
-                    model="models/text-embedding-004",
-                    content=fragmentos_reducidos,
-                    task_type="retrieval_document"
-                )["embeddings"]
+                response_docs = client.models.embed_content(
+                    model="text-embedding-004",
+                    contents=fragmentos_reducidos
+                )
+                doc_embs = [emb.values for emb in response_docs.embeddings]
 
-                # Calcular similitud coseno
+                # 3. Calcular similitud coseno
                 mejor_texto = ""
                 mejor_score = -1
 
@@ -129,9 +126,7 @@ if archivos:
 
         with st.spinner("🤖 Pensando con Gemini..."):
             try:
-                # El modelo insignia de producción gemini-1.5-flash
-                model = genai.GenerativeModel("models/gemini-1.5-flash")
-                
+                # Usamos el modelo rápido y estable actual
                 contexto_y_pregunta = f"""
 Eres un asistente que responde únicamente usando la información proporcionada del documento.
 
@@ -141,7 +136,10 @@ Información del documento:
 Pregunta:
 {pregunta}
 """
-                response = model.generate_content(contexto_y_pregunta)
+                response = client.models.generate_content(
+                    model="gemini-2.5-flash",
+                    contents=contexto_y_pregunta,
+                )
                 respuesta_ia = response.text
                 
             except Exception as e:
@@ -198,13 +196,13 @@ with st.sidebar:
     st.title("🤖 Chat Inteligente")
     st.markdown("---")
     st.write("### Modelo IA")
-    st.success("Google Gemini (gemini-1.5-flash)")
+    st.success("Google Gemini (gemini-2.5-flash)")
     st.write("### Motor de búsqueda")
     st.success("Gemini Embeddings (text-embedding-004)")
     st.write("### Librerías")
     st.markdown("""
 - ✅ Streamlit
-- ✅ Gemini API
+- ✅ Google GenAI SDK
 - ✅ PyPDF2
 - ✅ Numpy
 - ✅ Python
@@ -225,9 +223,11 @@ if archivos:
     if st.button("📄 Generar resumen"):
         with st.spinner("Generando resumen con Gemini..."):
             try:
-                model = genai.GenerativeModel("models/gemini-1.5-flash")
                 prompt_resumen = f"Resume el siguiente documento en máximo 10 líneas:\n\n{texto_total[:12000]}"
-                resumen = model.generate_content(prompt_resumen)
+                resumen = client.models.generate_content(
+                    model="gemini-2.5-flash",
+                    contents=prompt_resumen
+                )
                 
                 st.subheader("📝 Resumen")
                 st.write(resumen.text)

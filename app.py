@@ -137,7 +137,7 @@ Pregunta:
 {pregunta}
 """
                 response = client.models.generate_content(
-                    model="gemini-2.5-flash",
+                    model="gemini-flash-lastest",
                     contents=contexto_y_pregunta,
                 )
                 respuesta_ia = response.text
@@ -198,7 +198,7 @@ with st.sidebar:
     st.write("### Modelo IA")
     st.success("Google Gemini (gemini-2.5-flash)")
     st.write("### Motor de búsqueda")
-    st.success("Gemini Embeddings (text-embedding-004)")
+    st.success("Gemini Embeddings (gemini-embedding-001)")
     st.write("### Librerías")
     st.markdown("""
 - ✅ Streamlit
@@ -225,7 +225,7 @@ if archivos:
             try:
                 prompt_resumen = f"Resume el siguiente documento en máximo 10 líneas:\n\n{texto_total[:12000]}"
                 resumen = client.models.generate_content(
-                    model="gemini-2.5-flash",
+                    model="gemini-flash-latest",
                     contents=prompt_resumen
                 )
                 

@@ -81,7 +81,7 @@ if archivos:
             try:
                 # 1. Obtener embedding de la pregunta usando el cliente moderno
                 response_query = client.models.embed_content(
-                    model="text-embedding-004",
+                    model="text-embedding-001",
                     contents=pregunta
                 )
                 query_emb = response_query.embeddings[0].values
@@ -137,7 +137,7 @@ Pregunta:
 {pregunta}
 """
                 response = client.models.generate_content(
-                    model="gemini-flash-lastest",
+                    model="gemini-3.6-flash",
                     contents=contexto_y_pregunta,
                 )
                 respuesta_ia = response.text

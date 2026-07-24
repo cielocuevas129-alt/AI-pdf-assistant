@@ -39,7 +39,19 @@ Ejecuta la aplicación:
 ```bash
 streamlit run app.py
 ```
+## Capturas
 
+### Pantalla principal
+
+![Inicio](images/inicio.png)
+
+### Pregunta al PDF
+
+![Pregunta](images/pregunta.png)
+
+### Resumen automático
+
+![Resumen](images/resumen.png)
 
 ## 👩‍💻 Autora
 
